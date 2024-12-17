@@ -1,0 +1,22 @@
+import cv2
+import requests
+
+url = "http://<ESP32_IP>:80/video_stream"
+stream = requests.get(url, stream=True)
+
+if stream.status_code == 200:
+    byte_stream = bytes()
+    for chunk in stream.iter_content(chunk_size=1024):
+        byte_stream += chunk
+        a = byte_stream.find(b'\xff\xd8')  # JPEG start
+        b = byte_stream.find(b'\xff\xd9')  # JPEG end
+        if a != -1 and b != -1:
+            jpg = byte_stream[a:b+2]
+            byte_stream = byte_stream[b+2:]
+            frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+            cv2.imshow("Stream", frame)
+            if cv2.waitKey(1) == 27:  # Exit on ESC
+                break
+else:
+    print(f"Failed to connect: {stream.status_code}")
+
